@@ -45,6 +45,28 @@ def create_app():
         from app.archive import build_archive
         run=store.get(run_id)
         return application.response_class(build_archive(run),mimetype="text/csv",headers={"Content-Disposition":'attachment; filename="evidence.csv"'})
+    @application.post("/api/runs/<run_id>/corrections")
+    def create_correction(run_id):
+        from app.correction import create_correction as build
+        payload=request.get_json(silent=True)
+        if not isinstance(payload,dict) or not isinstance(payload.get("csv"),str):
+            raise DomainError("BAD_BODY","请提供补传扫描csv文本")
+        run,record,reused=build(run_id,payload["csv"].encode())
+        return jsonify({"run":run,"correction":record,"idempotent_reuse":reused})
+    @application.get("/api/runs/<run_id>/corrections")
+    def list_corrections(run_id):
+        store.get(run_id)
+        return {"origin_id":run_id,"corrections":store.corrections_for(run_id)}
+    @application.post("/api/corrections/<correction_id>/review")
+    def review_correction(correction_id):
+        p=request.get_json(silent=True) or {}
+        if not isinstance(p.get("version"),int): raise DomainError("BAD_VERSION","请提供版本号")
+        run,record=store.confirm_correction(correction_id,p["version"],p.get("decision"))
+        return jsonify({"run":run,"correction":record})
+    @application.get("/api/runs/<run_id>/official")
+    def official(run_id):
+        run,record=store.official(run_id)
+        return jsonify({"official_id":run["run_id"],"decision":run["decision"],"applied_correction":record})
     for index,(slug,title) in enumerate(MODULES,1):
         module=importlib.import_module(f"app.modules.m{index}_{slug}.handler")
         application.register_blueprint(module.bp)

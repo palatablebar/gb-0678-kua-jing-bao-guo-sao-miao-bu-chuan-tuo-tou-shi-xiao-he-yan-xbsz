@@ -38,6 +38,15 @@ docker compose exec -T app pytest -q
 
 `POST /api/runs` 接收sample或csv；`GET /api/runs`返回历史批次；`POST /api/runs/<id>/review`需要version与decision；`GET /api/runs/<id>/archive`返回唯一证据导出。
 
+## 复核后补传更正
+
+补传妥投常在复核后到达。系统裁决采用**重算原批并保留旧版**：原批复核后冻结不可变，补传与重建的原输入合并后全量重跑，生成带`correction_of`链的更正批次，页面展示更正依据与逐包裹新旧时效/赔付差异。更正批独立核对（待核对→已核对）通过前，旧批次保持唯一正式结算结果；核对通过后更正批成为唯一正式结果，原批证据仍可随时导出追回。
+
+- 同一原批+同一补传（按sha256）重试只返回同一更正批，不重复冲减；
+- 已申报赔付以原批为准钉住，补传携带的申报值不生效；
+- 补传含隔离行、合并重算新增隔离、扫描号与原批重复均在写入前拒绝，重算失败不触碰原证据；
+- 接口：`POST/GET /api/runs/<id>/corrections`、`POST /api/corrections/<id>/review`、`GET /api/runs/<id>/official`，详见`docs/API.md`。
+
 ## 范围
 
 样例均为虚构。单机复核工具不连接生产系统；不提供登录、远端数据库或自动支付。内存计算按4MB输入上限控制，SQLite事务保证结果完整写入。

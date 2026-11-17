@@ -32,6 +32,12 @@
 | TRAP-12 | DST自然日 | 固定24小时 | 按当地午夜切片 | `app/modules/m5_timeliness/rules.py` | `tests/test_m5.py::test_dst_actual_elapsed_hours` |
 | TRAP-13 | 迟到妥投补传 | 按上传时间赔付 | 发生时间重建 | `app/modules/m4_paths/rules.py` | `tests/test_m4.py::test_late_upload_event_time_decides` |
 | TRAP-23 | 假日端点 | 误算全天 | 当地日半开切段 | `app/modules/m5_timeliness/rules.py` | `tests/test_m5.py::test_holiday_full_day_stops` |
+| TRAP-27 | 复核后补传翻案 | 直接改原批结论与证据 | 原批冻结，重算另存更正批，独立核对通过才替换正式结果 | `app/correction.py` | `tests/test_correction.py::test_late_scan_flips_sla_and_compensation` |
+| TRAP-28 | 同一补传重试 | 重复生成批次、重复冲减赔付 | 原批id+补传sha256唯一约束，幂等返回既有更正批 | `app/store.py` | `tests/test_correction.py::test_same_supplement_retry_is_idempotent` |
+| TRAP-29 | 补传带新申报值 | 新妥投的reported静默覆盖已申报赔付 | 原批逐包裹reported钉住更正批并重算差额，漂移即中止 | `app/correction.py` | `tests/test_correction.py::test_declared_compensation_is_pinned_even_if_new_scan_carries_value` |
+| TRAP-30 | 重算失败误删证据 | 先删后算导致原证据丢失 | 先算后写，隔离数变化/补传不可采信均在写入前拒绝 | `app/correction.py` | `tests/test_correction.py::test_quarantined_supplement_fails_without_touching_origin` |
+| TRAP-31 | 补传表头拼接 | 第二张表头被当数据行隔离UNKNOWN_NODE | 拼接前剥离补传自身表头，仅保留重建输入的分段表头 | `app/correction.py` | `tests/test_correction.py::test_late_scan_flips_sla_and_compensation` |
+| TRAP-32 | 新旧两套数字并存 | 原批与调整单各自结算 | 更正链+official裁决：已核对更正为唯一正式结果，原批仅留痕 | `app/store.py` | `tests/test_correction.py::test_official_waits_for_confirmation` |
 
 ## 对账规则
 
